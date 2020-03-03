@@ -132,42 +132,20 @@ def create_network(
     # Discard courses without Tadira entries.
     courses = courses[(courses.index.isin(knowledge_entities.course_id))]
 
-    # Compute edge weights between KEs.
-    # ke_distances: pd.DataFrame = knowledge_entities.drop(columns=["id", "description"]).pivot_table(
-    #     index="guid", columns="course_id", aggfunc=lambda x: True
-    # ).fillna(False)
-    # ke_edge_weights: pd.DataFrame = pd.DataFrame(
-    #     cdist(ke_distances.values, ke_distances.values, lambda u, v: np.logical_and(u, v).sum()),
-    #     columns=ke_distances.index.values
-    # )
-
     ###################################################
     # Compute weights of edges between KEs and courses.
     ###################################################
 
-    knowledge_entities = knowledge_entities.merge(
+    knowledge_entities = knowledge_entities.reset_index().merge(
         tadirah_objects_counts, on="course_id"
     ).merge(
         tadirah_technologies_counts, on="course_id", suffixes=("_tadirah_objs", "_tadirah_techs")
-    )
+    ).set_index("guid")
 
     knowledge_entities.course_id = knowledge_entities.course_id.astype(str)
-
-    # knowledge_entities = knowledge_entities.reset_index().merge(
-    #     embedding[["x", "y"]], left_on="guid", right_on="id", how="inner", suffixes=("", "_source")
-    # ).merge(
-    #     embedding[["x", "y"]], left_on="course_id", right_on="id", how="inner", suffixes=("_source", "_target")
-    # )
-    # knowledge_entities["weight"] = 1 / np.sqrt(
-    #     np.power(knowledge_entities.x_source - knowledge_entities.x_target, 2) +
-    #     np.power(knowledge_entities.y_source - knowledge_entities.y_target, 2)
-    # )
-    # knowledge_entities = knowledge_entities.set_index("guid")
-    #
-    # # Normalize for translation into opacity values.
-    # knowledge_entities.weight -= knowledge_entities.weight.min()
-    # knowledge_entities.weight /= knowledge_entities.weight.max()
-    knowledge_entities.weight = 1 / (knowledge_entities.cnt_tadirah_objs + knowledge_entities.cnt_tadirah_techs)
+    knowledge_entities["weight"] = np.power(
+        1 / (knowledge_entities.cnt_tadirah_objs + knowledge_entities.cnt_tadirah_techs), 0.5
+    )
     # Adjust IDs.
     knowledge_entities["source"] = knowledge_entities.index.values
     knowledge_entities["target"] = "C" + knowledge_entities.course_id
@@ -379,7 +357,8 @@ def create_cytoscape_graph(plot_size: dict) -> cyto.Cytoscape:
             {
                 'selector': '[id ^= "C"]',
                 'style': {
-                    "label": "",
+                    "label": "data(label)",
+                    "font-size": 3,
                     "width": 4,
                     "height": 4,
                     "tooltip": "blub"

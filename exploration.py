@@ -24,17 +24,17 @@ embedding: pd.DataFrame = utils.compute_embedding(pd.concat([tadirah_techniques,
 tadirah_objects = tadirah_objects.set_index("guid")
 tadirah_techniques = tadirah_techniques.set_index("guid")
 
-guid = "TT12"
-local_network = utils.create_network(
-    courses[(courses.index.isin(tadirah_techniques.loc[[guid]].course_id))],
-    tadirah_objects.head(0),
-    tadirah_techniques.loc[[guid]],
-    tadirah_objects_counts,
-    tadirah_techniques_counts,
-    embedding,
-    plot_size
-)
-exit()
+# guid = "TT12"
+# local_network = utils.create_network(
+#     courses[(courses.index.isin(tadirah_techniques.loc[[guid]].course_id))],
+#     tadirah_objects.head(0),
+#     tadirah_techniques.loc[[guid]],
+#     tadirah_objects_counts,
+#     tadirah_techniques_counts,
+#     embedding,
+#     plot_size
+# )
+# exit()
 # local_network = utils.create_network(
 #     courses.loc[[int(408)]],
 #     tadirah_objects,
@@ -99,6 +99,8 @@ def display_click_data(clickdata_input, elements):
                     courses[(courses.index.isin(tadirah_techniques.loc[[guid]].course_id))],
                     tadirah_objects.head(0),
                     tadirah_techniques.loc[[guid]],
+                    tadirah_objects_counts,
+                    tadirah_techniques_counts,
                     embedding,
                     plot_size
                 )
@@ -108,6 +110,8 @@ def display_click_data(clickdata_input, elements):
                     courses[(courses.index.isin(tadirah_objects.loc[[guid]].course_id))],
                     tadirah_objects.loc[[guid]],
                     tadirah_techniques.head(0),
+                    tadirah_objects_counts,
+                    tadirah_techniques_counts,
                     embedding,
                     plot_size
                 )
@@ -116,6 +120,8 @@ def display_click_data(clickdata_input, elements):
                     courses.loc[[int(guid)]],
                     tadirah_objects,
                     tadirah_techniques,
+                    tadirah_objects_counts,
+                    tadirah_techniques_counts,
                     embedding,
                     plot_size
                 )
