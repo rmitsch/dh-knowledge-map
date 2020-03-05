@@ -109,8 +109,7 @@ def create_network(
         tadirah_technologies: pd.DataFrame,
         tadirah_objects_counts: pd.DataFrame,
         tadirah_technologies_counts: pd.DataFrame,
-        embedding: pd.DataFrame,
-        plot_size: dict
+        embedding: pd.DataFrame
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Creates network suitable for cytoscape.js from provided dataframes.
@@ -120,7 +119,6 @@ def create_network(
     :param tadirah_objects_counts:
     :param tadirah_technologies_counts:
     :param embedding:
-    :param plot_size:
     :return: Tuple with (1) list of nodes and (2) list of edges.
     """
 
@@ -210,8 +208,10 @@ def create_network(
                 lambda row: {
                     "data": {"id": "C" + str(row.name), "label": row["name"]},
                     "position": {
-                        "x": embedding.loc[str(row.name)].x * plot_size["width"],
-                        "y": embedding.loc[str(row.name)].y * plot_size["height"]
+                        # Note: If "preset" is to be used as graph layout, coordinates have to be scaled with plot
+                        # dimensions here. Ignored for now since most likely a graph layouting algorithm will be used.
+                        "x": embedding.loc[str(row.name)].x,
+                        "y": embedding.loc[str(row.name)].y
                     }
                 }, axis=1
             ).values,
@@ -220,8 +220,10 @@ def create_network(
                 lambda row: {
                     "data": {"id": row["guid"], "label": row["name"]},
                     "position": {
-                        "x": embedding.loc[str(row.guid)].x * plot_size["width"],
-                        "y": embedding.loc[str(row.guid)].y * plot_size["height"]
+                        # Note: If "preset" is to be used as graph layout, coordinates have to be scaled with plot
+                        # dimensions here. Ignored for now since most likely a graph layouting algorithm will be used.
+                        "x": embedding.loc[str(row.guid)].x,
+                        "y": embedding.loc[str(row.guid)].y
                     }
                 }, axis=1
             ).values
@@ -257,6 +259,7 @@ def create_global_scatterplot(
 
     return dcc.Graph(
         id='basic-interactions',
+        style={"height": "100%"},
         figure={
             'data': [
                 {
@@ -301,24 +304,30 @@ def create_global_scatterplot(
             'layout': {
                 'clickmode': 'event+select',
                 "xaxis": {"visible": False},
-                "yaxis": {"visible": False}
+                "yaxis": {"visible": False},
+                "margin": {
+                    "l": 0,
+                    "r": 0,
+                    "b": 0,
+                    "t": 0,
+                    "pad": 0
+                }
             }
         }
     )
 
 
-def create_cytoscape_graph(plot_size: dict) -> cyto.Cytoscape:
+def create_cytoscape_graph() -> cyto.Cytoscape:
     """
     Creates Cytoscape graph object.
-    :param plot_size:
     :return: Cytoscape graph object.
     """
     return cyto.Cytoscape(
         id='cytoscape-elements-callbacks',
         elements=[],  # network[0].tolist() + network[1].tolist(),
         layout={'name': 'cose-bilkent', "animate": True, "fit": True},
-        # reasonable: preset, cose-bilkent, cola, euler, circle (?)
-        style={'width': "100%", 'height': str(plot_size["height"]) + 'px'},
+        # reasonable: cose-bilkent, cola, euler, circle (?). preset works if coordinates are scaled.
+        style={'width': "100%", 'height': "100%"},
         stylesheet=[
             {
                 'selector': 'node',
@@ -327,15 +336,13 @@ def create_cytoscape_graph(plot_size: dict) -> cyto.Cytoscape:
                     "width": 8,
                     "height": 8,
                     "font-size": 8,
-                    "background-color": "blue",
-                    "tooltip": "test",
-                    "Tooltip": "test2"
+                    "background-color": "blue"
                 }
             },
             {
                 'selector': 'edge',
                 'style': {
-                    "curve-style": "taxi",
+                    "curve-style": "bezier",
                     "width": 0.3,
                     "opacity": "data(weight)"
                 }

@@ -19,7 +19,6 @@ storage_path: str = "/home/raphael/Development/data/DHH/"
 ) = utils.load_data(storage_path)
 
 last_guid: str = ""
-plot_size: dict = {"width": 1300, "height": 400}
 embedding: pd.DataFrame = utils.compute_embedding(pd.concat([tadirah_techniques, tadirah_objects]))
 tadirah_objects = tadirah_objects.set_index("guid")
 tadirah_techniques = tadirah_techniques.set_index("guid")
@@ -31,53 +30,81 @@ tadirah_techniques = tadirah_techniques.set_index("guid")
 #     tadirah_techniques.loc[[guid]],
 #     tadirah_objects_counts,
 #     tadirah_techniques_counts,
-#     embedding,
-#     plot_size
+#     embedding
 # )
 # exit()
 # local_network = utils.create_network(
 #     courses.loc[[int(408)]],
 #     tadirah_objects,
 #     tadirah_techniques,
-#     embedding,
-#     plot_size
+#     embedding
 # )
 # exit()
 
 cyto.load_extra_layouts()
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-app: dash.Dash = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+# external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+app: dash.Dash = dash.Dash(__name__)  # , external_stylesheets=external_stylesheets
 app.layout = html.Div(
     [
         html.Div(
-            utils.create_global_scatterplot(embedding, courses, tadirah_objects, tadirah_techniques),
-            style={"display": "inline-block", "width": "49%", "height": "90%"}
-        ),
-        html.Div(
-            utils.create_cytoscape_graph(plot_size),
-            style={"display": "inline-block", "width": "49%", "height": "90%"}
+            [
+                html.Div(
+                    utils.create_global_scatterplot(embedding, courses, tadirah_objects, tadirah_techniques),
+                    style={"display": "inline-block", "width": "49%", "height": "100%"}
+                ),
+                html.Div(
+                    utils.create_cytoscape_graph(),
+                    style={"display": "inline-block", "width": "49%", "height": "100%"}
+                ),
+            ],
+            style={"display": "block", "width": "100%", "height": "65%", "overflow": "hidden"}
         ),
         html.Div(
             [
-                html.Pre(id='click-data', style={
-                    'border': 'thin lightgrey solid',
-                    'overflowX': 'scroll'
-                })
+                html.Div(
+                    [
+                        html.Pre(id='scatterplot-click-data', style={
+                            'border': 'thin lightgrey solid',
+                            'overflowX': 'scroll',
+                            'overflowY': 'scroll'
+                        })
+                    ],
+                    style={
+                        "width": "49.5%",
+                        "height": "100%",
+                        "display": "inline-block"
+                    }
+                ),
+                html.Div(
+                    [
+                        html.Pre(id='graph-click-data', style={
+                            'border': 'thin lightgrey solid',
+                            'overflowX': 'scroll',
+                            'overflowY': 'scroll'
+                        })
+                    ],
+                    style={
+                        "width": "49.5%",
+                        "height": "100%",
+                        "display": "inline-block",
+                        "float": "right"
+                    }
+                )
             ],
-            style={"width": "100%", "height": "10%"},
-            className='three columns'
+            style={"width": "100%", "height": "35%", "display": "block", "overflowY": "hidden"}
         )
     ],
-    style={"display": "inline-block", "width": "100%", "height": "95%"}
+    style={"display": "inline-block", "width": "100%", "height": "calc(100vh - 20px)"}
 )
 
 
 @app.callback(
-    Output('click-data', 'children'),
+    Output('scatterplot-click-data', 'children'),
     [Input('basic-interactions', 'clickData')]
 )
 def display_click_data(clickdata_input):
-    return json.dumps(clickdata_input, indent=2)
+    if clickdata_input:
+        return json.dumps(clickdata_input, indent=2)
 
 
 @app.callback(
@@ -85,7 +112,7 @@ def display_click_data(clickdata_input):
     [Input('basic-interactions', 'clickData')],
     [State('cytoscape-elements-callbacks', 'elements')]
 )
-def display_click_data(clickdata_input, elements):
+def on_click_in_scatterplot(clickdata_input, elements):
     if clickdata_input is not None:
         global last_guid
         guid: str = str(clickdata_input["points"][0]["customdata"])
@@ -101,8 +128,7 @@ def display_click_data(clickdata_input, elements):
                     tadirah_techniques.loc[[guid]],
                     tadirah_objects_counts,
                     tadirah_techniques_counts,
-                    embedding,
-                    plot_size
+                    embedding
                 )
 
             elif guid.startswith("TO"):
@@ -112,8 +138,7 @@ def display_click_data(clickdata_input, elements):
                     tadirah_techniques.head(0),
                     tadirah_objects_counts,
                     tadirah_techniques_counts,
-                    embedding,
-                    plot_size
+                    embedding
                 )
             else:
                 local_network = utils.create_network(
@@ -122,14 +147,22 @@ def display_click_data(clickdata_input, elements):
                     tadirah_techniques,
                     tadirah_objects_counts,
                     tadirah_techniques_counts,
-                    embedding,
-                    plot_size
+                    embedding
                 )
 
             return local_network[0].tolist() + local_network[1].tolist()
 
     else:
         return []
+
+
+@app.callback(
+    Output('graph-click-data', 'children'),
+    [Input('cytoscape-elements-callbacks', 'tapNodeData')]
+)
+def on_click_in_graph(data):
+    if data:
+        return "Clicked: " + str(data)
 
 
 if __name__ == '__main__':
