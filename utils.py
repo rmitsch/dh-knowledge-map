@@ -1,6 +1,10 @@
+import json
+import os
+
 import pandas as pd
 from typing import Tuple, List, Dict
 import numpy as np
+import requests
 import umap
 from scipy.spatial.distance import cdist
 from scipy.special import expit
@@ -11,6 +15,23 @@ import dash_html_components as html
 import dash_core_components as dcc
 import itertools
 
+from constants import DH_REGISTRY_MATERIALS_ENDPOINTS
+
+
+def fetch_dh_registry_data():
+    """
+    Download data from DH Registry API
+    :return: As json objects: Courses, countries, disciplines, universities.
+    """
+    for endpoint in DH_REGISTRY_MATERIALS_ENDPOINTS.keys():
+        response = requests.get(DH_REGISTRY_MATERIALS_ENDPOINTS[endpoint]).json()
+        with open(os.path.join("/home/marta/Development/python/ACDH_hackathon/2020/dh-knowledge-map/dh_registry_data", "{}.json".format(endpoint)), 'w') as data_dump:
+            json.dump(response, data_dump)
+
+# import os
+# with open(os.path.join('/path/to/Documents',completeName), "w") as file1:
+#     toFile = raw_input("Write what you want into the field")
+#     file1.write(toFile)
 
 def load_data(storage_path: str) -> Tuple[
     pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame
