@@ -15,6 +15,7 @@ from utils import fetch_dh_registry_data
 
 fetch_dh_registry_data()
 storage_path: str = "dh_registry_data/"
+
 (
     courses, countries, disciplines, universities, tadirah_techniques, tadirah_objects, tadirah_techniques_counts,
     tadirah_objects_counts

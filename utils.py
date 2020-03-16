@@ -35,7 +35,6 @@ def upload_json_data(path, file_name):
     json_data = json.load(open_file)
     return json_data
 
-
 def load_data(storage_path: str) -> Tuple[
     pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame
 ]:
