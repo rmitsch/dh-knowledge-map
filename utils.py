@@ -1,6 +1,10 @@
+import json
+import os
+
 import pandas as pd
 from typing import Tuple, List, Dict
 import numpy as np
+import requests
 import umap
 from scipy.spatial.distance import cdist
 from scipy.special import expit
@@ -10,6 +14,26 @@ import dash_cytoscape as cyto
 import dash_html_components as html
 import dash_core_components as dcc
 import itertools
+
+from constants import DH_REGISTRY_MATERIALS_ENDPOINTS
+
+absolute_path = os.path.dirname(os.path.abspath(__file__))
+
+def fetch_dh_registry_data():
+    """
+    Download data from DH Registry API
+    :return: As json objects: Courses, countries, disciplines, universities.
+    """
+    for endpoint in DH_REGISTRY_MATERIALS_ENDPOINTS.keys():
+        response = requests.get(DH_REGISTRY_MATERIALS_ENDPOINTS[endpoint]).json()
+        with open(os.path.join(absolute_path, "{}.json".format(endpoint)), 'w') as data_dump:
+            json.dump(response, data_dump)
+
+
+def upload_json_data(path, file_name):
+    open_file = open(os.path.join(path, "{}.json".format(file_name)))
+    json_data = json.load(open_file)
+    return json_data
 
 
 def load_data(storage_path: str) -> Tuple[
@@ -23,7 +47,8 @@ def load_data(storage_path: str) -> Tuple[
     of Tadirah techniques per course, counts of Tadirah objects per course.
     """
 
-    courses: pd.DataFrame = pd.read_json(storage_path + "courses.json")
+    json_data_courses = upload_json_data(absolute_path, "courses")
+    courses = pd.DataFrame(json_data_courses)
     courses = courses[courses.active == True]
     tadirah_techniques: pd.DataFrame = pd.DataFrame([
         {**{"course_id": row[1].id}, **technique}
@@ -52,9 +77,9 @@ def load_data(storage_path: str) -> Tuple[
 
     return (
         courses,
-        pd.read_json(storage_path + "countries.json"),
-        pd.read_json(storage_path + "disciplines.json"),
-        pd.read_json(storage_path + "universities.json"),
+        pd.read_json(json.dumps(upload_json_data(absolute_path, "courses"))),
+        pd.read_json(json.dumps(upload_json_data(absolute_path, "disciplines"))),
+        pd.read_json(json.dumps(upload_json_data(absolute_path, "universities"))),
         tadirah_techniques,
         tadirah_objects,
         tadirah_techniques_counts,

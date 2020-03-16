@@ -6,13 +6,15 @@ import dash_html_components as html
 import dash_core_components as dcc
 from dash.dependencies import Input, Output, State
 import json
+from utils import fetch_dh_registry_data
+
 
 # todo
 #   - usage mode? do we start with courses and expand their knowledge entities? the other way around? do we present
 #     everything?
 
-
-storage_path: str = "/home/raphael/Development/data/DHH/"
+fetch_dh_registry_data()
+storage_path: str = "dh_registry_data/"
 (
     courses, countries, disciplines, universities, tadirah_techniques, tadirah_objects, tadirah_techniques_counts,
     tadirah_objects_counts
