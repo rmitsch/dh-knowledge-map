@@ -3,9 +3,10 @@ import utils
 import dash
 import dash_cytoscape as cyto
 import dash_html_components as html
-import dash_core_components as dcc
 from dash.dependencies import Input, Output, State
 import json
+
+from wikification import get_wiki_annotation
 from utils import fetch_dh_registry_data
 
 
@@ -165,7 +166,8 @@ def on_click_in_scatterplot(clickdata_input, elements):
 )
 def on_click_in_graph(data):
     if data:
-        return "Clicked: " + str(data)
+        return "Clicked: " + get_wiki_annotation(data)
+        # return "Clicked: " + str(data)
 
 
 if __name__ == '__main__':
