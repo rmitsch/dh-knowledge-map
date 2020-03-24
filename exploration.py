@@ -5,8 +5,9 @@ import dash_cytoscape as cyto
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 import json
+import uuid
 
-from wikification import get_wiki_annotation
+from wikification import get_wiki_annotation, integrate_wiki, find_related_wiki
 from utils import fetch_dh_registry_data
 
 
@@ -16,6 +17,7 @@ from utils import fetch_dh_registry_data
 
 fetch_dh_registry_data()
 storage_path: str = "dh_registry_data/"
+extended_nodes: set = set()   # keep track of clicked elements
 
 (
     courses, countries, disciplines, universities, tadirah_techniques, tadirah_objects, tadirah_techniques_counts,
@@ -113,13 +115,17 @@ def display_click_data(clickdata_input):
 
 @app.callback(
     Output('cytoscape-elements-callbacks', 'elements'),
-    [Input('basic-interactions', 'clickData')],
+    [
+    Input('basic-interactions', 'clickData'),
+    Input('cytoscape-elements-callbacks', 'tapNodeData')
+     ],
     [State('cytoscape-elements-callbacks', 'elements')]
 )
-def on_click_in_scatterplot(clickdata_input, elements):
-    if clickdata_input is not None:
+def on_click_in_scatterplot(basic_clickdata_input, cytoscape_tapnodedata_input, elements):
+    if basic_clickdata_input is not None:
         global last_guid
-        guid: str = str(clickdata_input["points"][0]["customdata"])
+        guid: str = str(basic_clickdata_input["points"][0]["customdata"])
+
         if last_guid != guid:
             last_guid = guid
             print("guid:", guid)
@@ -156,6 +162,27 @@ def on_click_in_scatterplot(clickdata_input, elements):
 
             return local_network[0].tolist() + local_network[1].tolist()
 
+    if cytoscape_tapnodedata_input is not None:
+        global extended_nodes
+
+        if cytoscape_tapnodedata_input["id"] not in extended_nodes:
+            related_wiki = find_related_wiki(cytoscape_tapnodedata_input)  # todo extend network
+
+            for wiki in related_wiki:
+                uuid_wiki = str(uuid.uuid1())
+                elements.extend([{
+                    'data': {'id': 'W{}'.format(uuid_wiki), 'label': wiki},
+                },
+                    {'data': {'source': 'W{}'.format(uuid_wiki), 'target': cytoscape_tapnodedata_input["id"], 'weight': 0.5,
+                              'id': str(uuid.uuid1())}}
+                ])
+
+            # Remember this node has been extended.
+            extended_nodes.add(cytoscape_tapnodedata_input["id"])
+
+        return elements
+
+    # todo wikipedia.exceptions.DisambiguationError: "lola" may refer to:
     else:
         return []
 
@@ -166,8 +193,7 @@ def on_click_in_scatterplot(clickdata_input, elements):
 )
 def on_click_in_graph(data):
     if data:
-        return "Clicked: " + get_wiki_annotation(data)
-        # return "Clicked: " + str(data)
+        return integrate_wiki(data)
 
 
 if __name__ == '__main__':

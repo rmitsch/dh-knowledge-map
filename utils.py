@@ -126,7 +126,6 @@ def compute_embedding(knowledge_entities: pd.DataFrame, invalidate_cache: bool =
 
     return embedding.set_index("id")
 
-
 def create_network(
         courses: pd.DataFrame,
         tadirah_objects: pd.DataFrame,
