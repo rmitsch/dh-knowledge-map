@@ -285,12 +285,16 @@ def preprocess_data_for_global_scatterplot(
         tadirah_objects.course_id.isin(courses.index)
     ].groupby(
         ["guid", "name"]
-    )["course_id"].apply(list).reset_index().set_index("guid")
+    )["course_id"]
+    if len(grouped_tos):
+        grouped_tos = grouped_tos.apply(list).reset_index().set_index("guid")
     grouped_tts: pd.DataFrame = tadirah_techniques[
         tadirah_techniques.course_id.isin(courses.index)
     ].groupby(
         ["guid", "name"]
-    )["course_id"].apply(list).reset_index().set_index("guid")
+    )["course_id"]
+    if len(grouped_tts):
+        grouped_tts = grouped_tts.apply(list).reset_index().set_index("guid")
 
     # Filter embedding coordinates.
     filtered_emb: pd.DataFrame = embedding[
@@ -324,7 +328,7 @@ def preprocess_data_for_global_scatterplot(
             'name': 'Tadirah Objects',
             'mode': 'markers',
             'marker': {'size': 5, "symbol": "diamond"}
-        },
+        } if len(grouped_tos) else {},
         {
             'x': filtered_emb[filtered_emb.type == "TT"].x,
             'y': filtered_emb[filtered_emb.type == "TT"].y,
@@ -337,7 +341,7 @@ def preprocess_data_for_global_scatterplot(
             'name': 'Tadirah Techniques',
             'mode': 'markers',
             'marker': {'size': 5, "symbol": "diamond"}
-        }
+        } if len(grouped_tts) else {}
     ]
 
 
@@ -352,8 +356,8 @@ def create_global_scatterplot_figure(data: list) -> dict:
         'data': data,
         'layout': {
             'clickmode': 'event+select',
-            "xaxis": {"visible": False},
-            "yaxis": {"visible": False},
+            "xaxis": {"visible": False, "range": [-0.1, 1.1]},
+            "yaxis": {"visible": False, "range": [-0.1, 1.1]},
             "margin": {
                 "l": 0,
                 "r": 0,
@@ -364,15 +368,13 @@ def create_global_scatterplot_figure(data: list) -> dict:
         }
     }
 
+
 def create_courses_table(courses: pd.DataFrame) -> dash_table.DataTable:
     """
     Creates DataTable for courses.
     :param courses: Dataframe with DH registry courses.
     :return: dash_table.DataTable to be integrated into Dash setup.
     """
-
-    with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', None):
-        print(courses.head())
 
     courses_for_table: pd.DataFrame = courses.reset_index()[[
         "id", "name", "description", "city", "country", "institution", "language"
@@ -413,9 +415,8 @@ def create_courses_table(courses: pd.DataFrame) -> dash_table.DataTable:
             }
         ],
         style_cell={
-            'height': 'auto',
-            # all three widths are needed
-            'minWidth': '30px', 'width': '30px', 'maxWidth': '80px',
+            "min-height": "10px",
+            'minWidth': '10px', 'width': '30px', 'maxWidth': '80px',
             'whiteSpace': 'normal',
             "font-family": "Verdana",
             "font-size": "10px"

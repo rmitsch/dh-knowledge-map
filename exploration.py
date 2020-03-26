@@ -14,7 +14,6 @@ from utils import fetch_dh_registry_data
 extended_nodes: set = set()
 
 # (Down-)load DH registriy data.
-# absolute_path: str = os.path.dirname(os.path.abspath(__file__))
 storage_directory: str = "/tmp"
 fetch_dh_registry_data(storage_directory)
 (
@@ -23,8 +22,10 @@ fetch_dh_registry_data(storage_directory)
 ) = utils.load_data(storage_directory)
 filtered_courses: pd.DataFrame = courses
 
+# Compute embedding.
 last_guid: str = ""
 embedding: pd.DataFrame = utils.compute_embedding(pd.concat([tadirah_techniques, tadirah_objects]))
+
 tadirah_objects = tadirah_objects.set_index("guid")
 tadirah_techniques = tadirah_techniques.set_index("guid")
 
@@ -45,14 +46,42 @@ app.layout = html.Div(
                             )
                         ),
                     ),
-                    style={"display": "inline-block", "width": "49%", "height": "100%"}
+                    style={
+                        "display": "inline-block", "width": "49%", "height": "100%"
+                    }
                 ),
                 html.Div(
                     utils.create_network_graph(),
-                    style={"display": "inline-block", "width": "49%", "height": "100%"}
+                    style={
+                        "display": "inline-block", "width": "49%", "height": "100%"
+                    }
+                ),
+                html.Div(
+                    "Courses & Tadirah Entities",
+                    style={
+                        "position": "absolute",
+                        "top": "10px",
+                        "left": "20px",
+                        "font-family": "Verdana",
+                        "font-size": "18px",
+                        "z-index": 10
+                    }
+                ),
+                html.Div(
+                    "Knowledge Map",
+                    style={
+                        "position": "absolute",
+                        "top": "10px",
+                        "right": "20px",
+                        "font-family": "Verdana",
+                        "font-size": "18px",
+                        "z-index": 10
+                    }
                 ),
             ],
-            style={"display": "block", "width": "100%", "height": "65%", "overflow": "hidden"}
+            style={
+                "display": "block", "width": "100%", "height": "65%", "overflow": "hidden"
+            }
         ),
         html.Div(
             [
@@ -66,7 +95,7 @@ app.layout = html.Div(
                 ),
                 html.Div(
                     [
-                        html.Pre(id='graph-click-data', style={
+                        html.Pre(id='wikipedia-output', style={
                             'border': 'thin lightgrey solid',
                             'overflowX': 'scroll',
                             'overflowY': 'scroll'
@@ -80,20 +109,15 @@ app.layout = html.Div(
                     }
                 )
             ],
-            style={"width": "100%", "height": "35%", "display": "block", "overflowY": "hidden", "overflowX": "hidden"}
+            style={
+                "width": "100%", "height": "35%", "display": "block", "overflowY": "hidden", "overflowX": "hidden"
+            }
         )
     ],
-    style={"display": "inline-block", "width": "100%", "height": "calc(100vh - 20px)"}
+    style={
+        "display": "inline-block", "width": "100%", "height": "calc(100vh - 20px)"
+    }
 )
-
-
-# @app.callback(
-#     Output('courses-table', 'children'),
-#     [Input('scatterplot', 'clickData')]
-# )
-# def display_click_data(clickdata_input):
-#     if clickdata_input:
-#         return json.dumps(clickdata_input, indent=2)
 
 
 @app.callback(
@@ -213,13 +237,13 @@ def update_network_graph(scatterplot_input: dict, networkgraph_input: dict, elem
         return []
 
 
-# @app.callback(
-#     Output('graph-click-data', 'children'),
-#     [Input('network-graph', 'tapNodeData')]
-# )
-# def on_click_in_graph(data):
-#     if data:
-#         return integrate_wiki(data)
+@app.callback(
+    Output('wikipedia-output', 'children'),
+    [Input('network-graph', 'tapNodeData')]
+)
+def on_click_in_graph(data):
+    if data:
+        return integrate_wiki(data)
 
 
 if __name__ == '__main__':
