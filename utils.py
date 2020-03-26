@@ -6,48 +6,54 @@ from typing import Tuple, List, Dict
 import numpy as np
 import requests
 import umap
-from scipy.spatial.distance import cdist
-from scipy.special import expit
 import os
-import sys
 import dash_cytoscape as cyto
-import dash_html_components as html
 import dash_core_components as dcc
 import itertools
+import dash_table
 
 from constants import DH_REGISTRY_MATERIALS_ENDPOINTS
 
-absolute_path = os.path.dirname(os.path.abspath(__file__))
 
-def fetch_dh_registry_data():
+def fetch_dh_registry_data(storage_directory: str, force_download: bool = False):
     """
     Download data from DH Registry API
+    :param storage_directory: Path to store files in.
+    :param force_download: Specifies whether to download registry data even if already available.
     :return: As json objects: Courses, countries, disciplines, universities.
     """
     for endpoint in DH_REGISTRY_MATERIALS_ENDPOINTS.keys():
-        response = requests.get(DH_REGISTRY_MATERIALS_ENDPOINTS[endpoint]).json()
-        with open(os.path.join(absolute_path, "{}.json".format(endpoint)), 'w') as data_dump:
-            json.dump(response, data_dump)
+        file_path: str = os.path.join(storage_directory, "{}.json".format(endpoint))
+
+        if not os.path.isfile(file_path):
+            response = requests.get(DH_REGISTRY_MATERIALS_ENDPOINTS[endpoint]).json()
+            with open(file_path, 'w') as data_dump:
+                json.dump(response, data_dump)
 
 
-def upload_json_data(path, file_name):
-    open_file = open(os.path.join(path, "{}.json".format(file_name)))
-    json_data = json.load(open_file)
-    return json_data
+def load_json_data(path: str, file_name: str) -> list:
+    """
+    Loads .json file.
+    :param path:
+    :param file_name:
+    :return:
+    """
 
-def load_data(storage_path: str) -> Tuple[
+    with open(os.path.join(path, "{}.json".format(file_name))) as open_file:
+        return json.load(open_file)
+
+
+def load_data(storage_directory: str) -> Tuple[
     pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame
 ]:
     """
     Loads datasets.
-    :param storage_path:
-    :type storage_path:
+    :param storage_directory: Directory containing downloaded registry data.
     :return: As dataframes: Courses, countries, disciplines, universities, Tadirah techniques, Tadirah objects, counts
     of Tadirah techniques per course, counts of Tadirah objects per course.
     """
 
-    json_data_courses = upload_json_data(absolute_path, "courses")
-    courses = pd.DataFrame(json_data_courses)
+    courses: pd.DataFrame = pd.DataFrame(load_json_data(storage_directory, "courses"))
     courses = courses[courses.active == True]
     tadirah_techniques: pd.DataFrame = pd.DataFrame([
         {**{"course_id": row[1].id}, **technique}
@@ -76,9 +82,9 @@ def load_data(storage_path: str) -> Tuple[
 
     return (
         courses,
-        pd.read_json(json.dumps(upload_json_data(absolute_path, "courses"))),
-        pd.read_json(json.dumps(upload_json_data(absolute_path, "disciplines"))),
-        pd.read_json(json.dumps(upload_json_data(absolute_path, "universities"))),
+        pd.DataFrame(load_json_data(storage_directory, "countries")),
+        pd.DataFrame(load_json_data(storage_directory, "disciplines")),
+        pd.DataFrame(load_json_data(storage_directory, "universities")),
         tadirah_techniques,
         tadirah_objects,
         tadirah_techniques_counts,
@@ -125,6 +131,7 @@ def compute_embedding(knowledge_entities: pd.DataFrame, invalidate_cache: bool =
         embedding: pd.DataFrame = pd.read_pickle(cache_path)
 
     return embedding.set_index("id")
+
 
 def create_network(
         courses: pd.DataFrame,
@@ -261,92 +268,168 @@ def create_network(
     )
 
 
-def create_global_scatterplot(
-        embedding: pd.DataFrame, courses: pd.DataFrame, tadirah_objects: pd.DataFrame, tadirah_techniques: pd.DataFrame
-) -> dcc.Graph:
+def preprocess_data_for_global_scatterplot(
+    embedding: pd.DataFrame, courses: pd.DataFrame, tadirah_objects: pd.DataFrame, tadirah_techniques: pd.DataFrame
+) -> list:
     """
-    Defines configuration for global scatterplot.
+    Preprocesses data for global scatterplot.
     :param embedding:
     :param courses:
     :param tadirah_objects:
     :param tadirah_techniques:
-    :return: dcc.Graph object for local scatter plot.
+    :return:
     """
 
-    grouped_tos: pd.DataFrame = tadirah_objects.groupby(
+    # Filter and aggregated Tadirah objects and techniques.
+    grouped_tos: pd.DataFrame = tadirah_objects[
+        tadirah_objects.course_id.isin(courses.index)
+    ].groupby(
         ["guid", "name"]
     )["course_id"].apply(list).reset_index().set_index("guid")
-    grouped_tts: pd.DataFrame = tadirah_techniques.groupby(
+    grouped_tts: pd.DataFrame = tadirah_techniques[
+        tadirah_techniques.course_id.isin(courses.index)
+    ].groupby(
         ["guid", "name"]
     )["course_id"].apply(list).reset_index().set_index("guid")
 
-    return dcc.Graph(
-        id='basic-interactions',
-        style={"height": "100%"},
-        figure={
-            'data': [
-                {
-                    'x': embedding[embedding.type == "C"].x,
-                    'y': embedding[embedding.type == "C"].y,
-                    'text': courses.loc[embedding[embedding.type == "C"].index.values.astype(int)].name,
-                    'customdata': courses.loc[
-                        embedding[embedding.type == "C"].index.values.astype(int)
-                    ].index.values,
-                    'customdata2': "blub",
-                    'name': 'Courses',
-                    'mode': 'markers',
-                    'marker': {'size': 3}
-                },
-                {
-                    'x': embedding[embedding.type == "TO"].x,
-                    'y': embedding[embedding.type == "TO"].y,
-                    'text': grouped_tos.loc[
-                        embedding[embedding.type == "TO"].index.values
-                    ].name,
-                    'customdata': grouped_tos.loc[
-                        embedding[embedding.type == "TO"].index.values
-                    ].index.values,
-                    'name': 'Tadirah Objects',
-                    'mode': 'markers',
-                    'marker': {'size': 5, "symbol": "diamond"}
-                },
-                {
-                    'x': embedding[embedding.type == "TT"].x,
-                    'y': embedding[embedding.type == "TT"].y,
-                    'text': grouped_tts.loc[
-                        embedding[embedding.type == "TT"].index.values
-                    ].name,
-                    'customdata': grouped_tts.loc[
-                        embedding[embedding.type == "TT"].index.values
-                    ].index.values,
-                    'name': 'Tadirah Techniques',
-                    'mode': 'markers',
-                    'marker': {'size': 5, "symbol": "diamond"}
-                }
-            ],
-            'layout': {
-                'clickmode': 'event+select',
-                "xaxis": {"visible": False},
-                "yaxis": {"visible": False},
-                "margin": {
-                    "l": 0,
-                    "r": 0,
-                    "b": 0,
-                    "t": 0,
-                    "pad": 0
-                }
+    # Filter embedding coordinates.
+    filtered_emb: pd.DataFrame = embedding[
+        embedding.index.isin(
+            set(grouped_tos.index.values) | set(grouped_tts.index.values) | set(courses.index.values.astype(str))
+        )
+    ]
+
+    return [
+        {
+            'x': filtered_emb[filtered_emb.type == "C"].x,
+            'y': filtered_emb[filtered_emb.type == "C"].y,
+            'text': courses.loc[filtered_emb[filtered_emb.type == "C"].index.values.astype(int)].name,
+            'customdata': courses.loc[
+                filtered_emb[filtered_emb.type == "C"].index.values.astype(int)
+            ].index.values,
+            'customdata2': "blub",
+            'name': 'Courses',
+            'mode': 'markers',
+            'marker': {'size': 3}
+        },
+        {
+            'x': filtered_emb[filtered_emb.type == "TO"].x,
+            'y': filtered_emb[filtered_emb.type == "TO"].y,
+            'text': grouped_tos.loc[
+                filtered_emb[filtered_emb.type == "TO"].index.values
+            ].name,
+            'customdata': grouped_tos.loc[
+                filtered_emb[filtered_emb.type == "TO"].index.values
+            ].index.values,
+            'name': 'Tadirah Objects',
+            'mode': 'markers',
+            'marker': {'size': 5, "symbol": "diamond"}
+        },
+        {
+            'x': filtered_emb[filtered_emb.type == "TT"].x,
+            'y': filtered_emb[filtered_emb.type == "TT"].y,
+            'text': grouped_tts.loc[
+                filtered_emb[filtered_emb.type == "TT"].index.values
+            ].name,
+            'customdata': grouped_tts.loc[
+                filtered_emb[filtered_emb.type == "TT"].index.values
+            ].index.values,
+            'name': 'Tadirah Techniques',
+            'mode': 'markers',
+            'marker': {'size': 5, "symbol": "diamond"}
+        }
+    ]
+
+
+def create_global_scatterplot_figure(data: list) -> dict:
+    """
+    Defines configuration for global scatterplot figure as dict.
+    :param data: List of data elements in scatter plot.
+    :return: Dict to be used as "figure" configuration for dcc.Graph object for scatter plot.
+    """
+
+    return {
+        'data': data,
+        'layout': {
+            'clickmode': 'event+select',
+            "xaxis": {"visible": False},
+            "yaxis": {"visible": False},
+            "margin": {
+                "l": 0,
+                "r": 0,
+                "b": 0,
+                "t": 0,
+                "pad": 0
             }
+        }
+    }
+
+def create_courses_table(courses: pd.DataFrame) -> dash_table.DataTable:
+    """
+    Creates DataTable for courses.
+    :param courses: Dataframe with DH registry courses.
+    :return: dash_table.DataTable to be integrated into Dash setup.
+    """
+
+    with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', None):
+        print(courses.head())
+
+    courses_for_table: pd.DataFrame = courses.reset_index()[[
+        "id", "name", "description", "city", "country", "institution", "language"
+    ]]
+    for json_col in ["city", "country", "institution", "language"]:
+        courses_for_table[json_col] = courses_for_table[json_col].apply(lambda x: x["name"])
+
+    return dash_table.DataTable(
+        id="courses-table",
+        data=courses_for_table.to_dict('records'),
+        columns=[{'id': c, 'name': c} for c in courses_for_table.columns],
+        style_as_list_view=False,
+        filter_action="native",
+        editable=False,
+        sort_action="native",
+        sort_mode="multi",
+        row_selectable="multi",
+        row_deletable=False,
+        selected_columns=[],
+        selected_rows=[],
+        page_action="native",
+        page_current=0,
+        fixed_rows={'headers': True, 'data': 0},
+        style_data={
+            'whiteSpace': 'normal',
+            'height': 'auto',
+        },
+        style_table={
+            "height": "28vh",
+            "width": "100%",
+            "max-width": "100%",
+            "overflowY": 'scroll'
+        },
+        style_data_conditional=[
+            {
+                'if': {'row_index': 'odd'},
+                'backgroundColor': 'rgb(248, 248, 248)'
+            }
+        ],
+        style_cell={
+            'height': 'auto',
+            # all three widths are needed
+            'minWidth': '30px', 'width': '30px', 'maxWidth': '80px',
+            'whiteSpace': 'normal',
+            "font-family": "Verdana",
+            "font-size": "10px"
         }
     )
 
 
-def create_cytoscape_graph() -> cyto.Cytoscape:
+def create_network_graph() -> cyto.Cytoscape:
     """
-    Creates Cytoscape graph object.
+    Creates network graph as Cytoscape graph object.
     :return: Cytoscape graph object.
     """
     return cyto.Cytoscape(
-        id='cytoscape-elements-callbacks',
+        id='network-graph',
         elements=[],  # network[0].tolist() + network[1].tolist(),
         layout={'name': 'cose-bilkent', "animate": True, "fit": True},
         # reasonable: cose-bilkent, cola, euler, circle (?). preset works if coordinates are scaled.
@@ -393,6 +476,13 @@ def create_cytoscape_graph() -> cyto.Cytoscape:
                     "height": 4,
                     "tooltip": "blub"
                 }
-            }
+            },
+            {
+                'selector': '[id ^= "W"]',
+                'style': {
+                    'background-color': 'black',
+                    'shape': 'diamond'
+                }
+            },
         ]
     )
