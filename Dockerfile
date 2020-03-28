@@ -16,9 +16,7 @@ RUN apt-get update && \
     # Install system dependencies.
     apt-get -y --no-install-recommends install gcc g++ apt-utils make cmake nano && \
     # Install conda/pip depencencies; configure default environment.
-    conda env create -f /tmp/environment.yml && \
-    # Execute additional setup.
-    chmod +x /tmp/setup.sh && sync && ./tmp/setup.sh
+    conda env create -f /tmp/environment.yml
 
 ##########################################
 # 3. Copy code.
