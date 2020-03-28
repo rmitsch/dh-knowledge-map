@@ -99,8 +99,6 @@ app.layout = html.Div(
                         html.A("", id="wikipedia-link", href='', target="_blank"),
                         html.Div(id='wikipedia-output', style={
                             'border': 'transparent',
-                            'overflowX': 'scroll',
-                            'overflowY': 'scroll',
                             'word-break': 'break-all',
                             "font-family": "Verdana",
                         })
@@ -110,7 +108,8 @@ app.layout = html.Div(
                         "width": "49.5%",
                         "height": "100%",
                         "display": "inline-block",
-                        "float": "right"
+                        "float": "right",
+                        'overflowY': 'auto',
                     }
                 )
             ],

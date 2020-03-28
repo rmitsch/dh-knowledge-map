@@ -1,7 +1,7 @@
 import requests
 import json
 import wikipedia
-from wikipedia import DisambiguationError
+from wikipedia import DisambiguationError, PageError
 
 API_BASE = "http://api.dbpedia-spotlight.org/en"
 endpoint = "/annotate"
@@ -13,7 +13,7 @@ def integrate_wiki(keyword):
     wiki_summary = ""
     try:
         wiki_summary = wikipedia.summary(keyword_page)
-    except DisambiguationError:
+    except (DisambiguationError, PageError):
         pass
     return wiki_summary, "https://en.wikipedia.org/wiki/{}".format(keyword_page), keyword_page
 
@@ -24,6 +24,9 @@ def find_related_wiki(keyword, elements):
         keyword_page = keyword["label"]
         related = wikipedia.search(keyword_page)[1:]
         related = [label for label in related if label not in elements_nodes][0:3]
-    except DisambiguationError:
+    except (DisambiguationError, PageError):
         return []
     return related  # list of related wikipedia articles
+
+
+# TODO disambiguation not showing text
