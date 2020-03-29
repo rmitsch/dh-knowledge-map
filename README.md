@@ -35,3 +35,7 @@ Run after local build with:
 ```bash
 docker run -p 8050:8050 dh-knowledge-map python exploration.py
 ```
+
+### Run Instructions
+
+Open [http://0.0.0.0:8050](http://0.0.0.0:8050).
