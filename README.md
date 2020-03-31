@@ -7,13 +7,9 @@ About this project: [DH Education Knowledge Map - creating knowledge maps via hy
 
 #### With conda
 
-Change to source directory. Create environment with:
+Change to source directory. Create environment, then run with
 ```bash
 conda env create --name dhekm --file=environment.yml
-```
-
-Run with: 
-```bash
 conda activate dhekm
 python exploration.py
 ```
