@@ -18,13 +18,13 @@ Open [http://0.0.0.0:8050](http://0.0.0.0:8050).
 
 #### With Docker 
 
-_Downloading pre-built image from Docker hub_:
+_Downloading and running pre-built image from Docker hub_:
 ```bash
 docker run -p 8050:8050 rmitsch/dh-knowledge-map python exploration.py
 ```
 Open [http://0.0.0.0:8050](http://0.0.0.0:8050).
 
-_Building the image locally_:
+_Building the image locally and running it_:
 ```bash
 docker build -t dh-knowledge-map -f Dockerfile .
 docker run -p 8050:8050 dh-knowledge-map python exploration.py
