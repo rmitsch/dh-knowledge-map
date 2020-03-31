@@ -7,8 +7,7 @@ About this project: [DH Education Knowledge Map - creating knowledge maps via hy
 
 #### With conda
 
-Change to source directory.  
-Create environment with:
+Change to source directory. Create environment with:
 ```bash
 conda env create --name dhekm --file=environment.yml
 ```
@@ -23,14 +22,14 @@ Open [http://0.0.0.0:8050](http://0.0.0.0:8050).
 
 #### With Docker 
 
-**Downloading pre-built image from Docker hub**:
+_Downloading pre-built image from Docker hub_:
 Run without building by downloading from Docker Hub with: 
 ```bash
 docker run -p 8050:8050 rmitsch/dh-knowledge-map python exploration.py
 ```
 Open [http://0.0.0.0:8050](http://0.0.0.0:8050).
 
-**Building the image locally**:
+_Building the image locally_:
 ```bash
 docker build -t dh-knowledge-map -f Dockerfile .
 docker run -p 8050:8050 dh-knowledge-map python exploration.py
